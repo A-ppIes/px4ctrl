@@ -30,8 +30,8 @@ class PX4CtrlFSM
 public:
 	Parameter_t &param;
 
-	RC_Data_t rc_data;
-	// Dynamic_Data_t rc_data;
+	// RC_Data_t rc_data;
+	Dynamic_Data_t rc_data;
 	State_Data_t state_data;
 	ExtendedState_Data_t extended_state_data;
 	Odom_Data_t odom_data;

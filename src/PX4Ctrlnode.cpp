@@ -58,9 +58,9 @@ int main(int argc, char *argv[])
     ros::Subscriber rc_sub;
     if (!param.takeoff_land.no_RC) // mavros will still publish wrong rc messages although no RC is connected
     {
-        rc_sub = nh.subscribe<mavros_msgs::RCIn>("mavros/rc/in",
-                                                 10,
-                                                 boost::bind(&RC_Data_t::feed, &fsm.rc_data, _1));
+        // rc_sub = nh.subscribe<mavros_msgs::RCIn>("mavros/rc/in",
+        //                                          10,
+        //                                          boost::bind(&RC_Data_t::feed, &fsm.rc_data, _1));
     }
 
     // ros::Subscriber bat_sub =
@@ -86,11 +86,11 @@ int main(int argc, char *argv[])
     fsm.arming_client_srv = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
     fsm.reboot_FCU_srv = nh.serviceClient<mavros_msgs::CommandLong>("mavros/cmd/command");
 
-    // dynamic_reconfigure::Server<dynamic_refg::fake_rcConfig> server;
-    // dynamic_reconfigure::Server<dynamic_refg::fake_rcConfig>::CallbackType f;
+    dynamic_reconfigure::Server<dynamic_refg::fake_rcConfig> server;
+    dynamic_reconfigure::Server<dynamic_refg::fake_rcConfig>::CallbackType f;
 
-    // f = boost::bind(&Dynamic_Data_t::feed, &fsm.rc_data ,_1); //绑定回调函数
-    // server.setCallback(f); //为服务器设置回调函数， 节点程序运行时会调用一次回调函数来输出当前的参数配置情况
+    f = boost::bind(&Dynamic_Data_t::feed, &fsm.rc_data ,_1); //绑定回调函数
+    server.setCallback(f); //为服务器设置回调函数， 节点程序运行时会调用一次回调函数来输出当前的参数配置情况
 
     ros::Duration(0.5).sleep();
 
@@ -101,16 +101,16 @@ int main(int argc, char *argv[])
     else
     {
         ROS_INFO("PX4CTRL] Waiting for RC");
-        while (ros::ok())
-        {
-            ros::spinOnce();
-            if (fsm.rc_is_received(ros::Time::now()))
-            {
-                ROS_INFO("[PX4CTRL] RC received.");
-                break;
-            }
-            ros::Duration(0.1).sleep();
-        }
+        // while (ros::ok())
+        // {
+        //     ros::spinOnce();
+        //     if (fsm.rc_is_received(ros::Time::now()))
+        //     {
+        //         ROS_INFO("[PX4CTRL] RC received.");
+        //         break;
+        //     }
+        //     ros::Duration(0.1).sleep();
+        // }
     }
 
     int trials = 0;

@@ -323,12 +323,12 @@ void PX4CtrlFSM::set_hov_with_rc() {
 	double delta_t = (now - last_set_hover_pose_time).toSec();
 	last_set_hover_pose_time = now;
 
-	hover_pose(0) += rc_data.ch[1] * param.max_manual_vel * delta_t * (param.rc_reverse.pitch ? 1 : -1);
-	hover_pose(1) += rc_data.ch[0] * param.max_manual_vel * delta_t * (param.rc_reverse.roll ? 1 : -1);
-	// hover_pose(0) += rc_data.ch[0] * param.max_manual_vel * delta_t * (param.rc_reverse.roll ? 1 : -1);
-	// hover_pose(1) += rc_data.ch[1] * param.max_manual_vel * delta_t * (param.rc_reverse.pitch ? 1 : -1);
-	hover_pose(2) += rc_data.ch[2] * param.max_manual_vel * delta_t * (param.rc_reverse.throttle ? 1 : -1);
-	hover_pose(3) += rc_data.ch[3] * param.max_manual_vel * delta_t * (param.rc_reverse.yaw ? 1 : -1);
+	// hover_pose(0) += rc_data.ch[1] * param.max_manual_vel * delta_t * (param.rc_reverse.pitch ? 1 : -1);
+	// hover_pose(1) += rc_data.ch[0] * param.max_manual_vel * delta_t * (param.rc_reverse.roll ? 1 : -1);
+	// // hover_pose(0) += rc_data.ch[0] * param.max_manual_vel * delta_t * (param.rc_reverse.roll ? 1 : -1);
+	// // hover_pose(1) += rc_data.ch[1] * param.max_manual_vel * delta_t * (param.rc_reverse.pitch ? 1 : -1);
+	// hover_pose(2) += rc_data.ch[2] * param.max_manual_vel * delta_t * (param.rc_reverse.throttle ? 1 : -1);
+	// hover_pose(3) += rc_data.ch[3] * param.max_manual_vel * delta_t * (param.rc_reverse.yaw ? 1 : -1);
 
 	if (hover_pose(2) < -0.3)
 		hover_pose(2) = -0.3;
@@ -352,10 +352,10 @@ void PX4CtrlFSM::set_start_pose_for_takeoff_land(const Odom_Data_t &odom) {
 	takeoff_land.toggle_takeoff_land_time = ros::Time::now();
 }
 
-bool PX4CtrlFSM::rc_is_received(const ros::Time &now_time) {
+// bool PX4CtrlFSM::rc_is_received(const ros::Time &now_time) {
 
-	return (now_time - rc_data.rcv_stamp).toSec() < param.msg_timeout.rc;
-}
+// 	return (now_time - rc_data.rcv_stamp).toSec() < param.msg_timeout.rc;
+// }
 
 bool PX4CtrlFSM::cmd_is_received(const ros::Time &now_time) {
 
