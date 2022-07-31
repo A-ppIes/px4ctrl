@@ -1,0 +1,57 @@
+<launch>
+
+    <arg name="est" default="ekf2"/>
+    <arg name="vehicle" default="iris"/>
+    <arg name="sdf" default="iris_D435i"/>
+    <arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/ego.world"/>
+    <!-- gazebo configs -->
+    <arg name="gui" default="true"/>
+    <arg name="debug" default="false"/>
+    <arg name="verbose" default="false"/>
+    <arg name="paused" default="false"/>
+    <!-- Gazebo sim -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="world_name" value="$(arg world)"/>
+        <arg name="debug" value="$(arg debug)"/>
+        <arg name="verbose" value="$(arg verbose)"/>
+        <arg name="paused" value="$(arg paused)"/>
+    </include>
+
+	<group ns="iris_0">
+		<node pkg="px4ctrl" type="px4ctrl_node" name="px4ctrl" output="screen">
+			<!-- <remap from="~odom" to="/vicon_imu_ekf_odom" /> -->
+			<remap from="odom" to="mavros/local_position/odom" />
+			<remap from="cmd" to="planning/pos_cmd" />
+			<rosparam command="load" file="$(find px4ctrl)/config/ctrl_param_fpv.yaml" />
+		</node>
+
+		<!-- MAVROS and vehicle configs -->
+        <arg name="ID" value="0"/>
+        <arg name="fcu_url" default="udp://:14540@localhost:14580"/>
+        <arg name="gcs_url" default="udp://:14556@192.168.1.10:14550" />
+        <!-- PX4 SITL and vehicle spawn -->
+        <include file="$(find px4)/launch/single_vehicle_spawn_ssdf.launch">
+            <arg name="x" value="-6"/>
+            <arg name="y" value="0"/>
+            <arg name="z" value="0"/>
+            <arg name="R" value="0"/>
+            <arg name="P" value="0"/>
+            <arg name="Y" value="0"/>
+            <arg name="sdf" value="$(arg sdf)"/>
+            <arg name="vehicle" value="$(arg vehicle)"/>
+            <arg name="mavlink_udp_port" value="14560"/>
+            <arg name="mavlink_tcp_port" value="4560"/>
+            <arg name="ID" value="$(arg ID)"/>
+        </include>
+        <!-- MAVROS -->
+        <include file="$(find mavros)/launch/px4.launch">
+            <arg name="fcu_url" value="$(arg fcu_url)"/>
+            <arg name="gcs_url" value="$(arg gcs_url)"/>
+            <arg name="tgt_system" value="$(eval 1 + arg('ID'))"/>
+            <arg name="tgt_component" value="1"/>
+        </include>
+
+	</group>
+ 
+</launch>
