@@ -133,7 +133,7 @@ Dynamic_Data_t::Dynamic_Data_t() {
     last_cmd = false;
 };
 
-void Dynamic_Data_t::feed(dynamic_refg::fake_rcConfig &config) {
+void Dynamic_Data_t::feed(px4ctrl::fake_rcConfig &config) {
 
     msg = config;
 

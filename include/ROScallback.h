@@ -68,10 +68,10 @@ public:
     bool cmd;
     bool last_cmd; // fake_rcConfig
 
-    dynamic_refg::fake_rcConfig msg;
+    px4ctrl::fake_rcConfig msg;
 
     Dynamic_Data_t();
-    void feed(dynamic_refg::fake_rcConfig &config);
+    void feed(px4ctrl::fake_rcConfig &config);
 
 };
 

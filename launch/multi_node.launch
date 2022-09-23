@@ -1,0 +1,26 @@
+<launch>
+    <group ns="iris_0">
+        <node pkg="px4ctrl" type="px4ctrl_node" name="px4ctrl_0" output="screen">
+            <!-- <remap from="~odom" to="/vicon_imu_ekf_odom" /> -->
+            <remap from="odom" to="mavros/local_position/odom" />
+            <remap from="cmd" to="planning/pos_cmd" />
+            <rosparam command="load" file="$(find px4ctrl)/config/ctrl_param_fpv.yaml" />
+        </node>
+    </group>
+    <group ns="iris_1">
+        <node pkg="px4ctrl" type="px4ctrl_node" name="px4ctrl_1" output="screen">
+            <!-- <remap from="~odom" to="/vicon_imu_ekf_odom" /> -->
+            <remap from="odom" to="mavros/local_position/odom" />
+            <remap from="cmd" to="planning/pos_cmd" />
+            <rosparam command="load" file="$(find px4ctrl)/config/ctrl_param_fpv.yaml" />
+        </node>
+    </group>
+    <group ns="iris_2">
+        <node pkg="px4ctrl" type="px4ctrl_node" name="px4ctrl_2" output="screen">
+            <!-- <remap from="~odom" to="/vicon_imu_ekf_odom" /> -->
+            <remap from="odom" to="mavros/local_position/odom" />
+            <remap from="cmd" to="planning/pos_cmd" />
+            <rosparam command="load" file="$(find px4ctrl)/config/ctrl_param_fpv.yaml" />
+        </node>
+    </group>
+</launch>

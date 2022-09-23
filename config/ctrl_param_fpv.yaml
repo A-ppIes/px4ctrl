@@ -10,6 +10,7 @@ use_bodyrate_ctrl: false
 max_manual_vel: 1.0
 max_angle: 30  # Attitude angle limit in degree. A negative value means no limit.
 low_voltage: 13.2 # 4S battery
+leader: true # leader control the trigger of ego
 
 rc_reverse: # *
     roll: false
@@ -20,7 +21,7 @@ rc_reverse: # *
 auto_takeoff_land:
     enable: true
     enable_auto_arm: true
-    no_RC: false
+    no_RC: true # set true when sim, set false in exp
     takeoff_height: 1.0 # m
     takeoff_land_speed: 0.3 # m/s
 
