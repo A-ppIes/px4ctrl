@@ -171,7 +171,7 @@ void PX4CtrlFSM::process()
     if (state == AUTO_HOVER || state == CMD_CTRL) {
 
         // controller.estimateThrustModel(imu_data.a, bat_data.volt, param);
-        controller.estimateThrustModel(imu_data.a,param);
+        controller.estimateThrustModel(imu_data.a);
 
     }
 
@@ -181,7 +181,8 @@ void PX4CtrlFSM::process()
         motors_idling(imu_data, u);
     } else {
 
-        controller.calculateControl(des, odom_data, imu_data, u);
+        // controller.calculateControl(des, odom_data, imu_data, u);
+        controller.update_alg1(des, odom_data, imu_data, u);
         // debug_msg = controller.calculateControl(des, odom_data, imu_data, u);
         // debug_msg.header.stamp = now_time;
         // debug_pub.publish(debug_msg);

@@ -292,9 +292,9 @@ void Command_Data_t::feed(quadrotor_msgs::PositionCommandConstPtr pMsg) {
     a(1) = msg.acceleration.y;
     a(2) = msg.acceleration.z;
 
-    // j(0) = msg.jerk.x;
-    // j(1) = msg.jerk.y;
-    // j(2) = msg.jerk.z;
+    j(0) = msg.jerk.x;
+    j(1) = msg.jerk.y;
+    j(2) = msg.jerk.z;
 
     // std::cout << "j1=" << j.transpose() << std::endl;
 

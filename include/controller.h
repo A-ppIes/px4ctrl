@@ -57,8 +57,13 @@ public:
         const Odom_Data_t &odom,
         const Imu_Data_t &imu, 
         Controller_Output_t &u);
-    bool estimateThrustModel(const Eigen::Vector3d &est_v,
-        const Parameter_t &param);
+    
+    void update_alg1(const Desired_State_t &des,
+        const Odom_Data_t &odom,
+        const Imu_Data_t &imu,
+        Controller_Output_t &u);
+
+    bool estimateThrustModel(const Eigen::Vector3d &est_v);
     void resetThrustMapping(void);
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -67,12 +72,34 @@ private:
     Parameter_t param_;
     std::queue<std::pair<ros::Time, double>> timed_thrust_;
     static constexpr double kMinNormalizedCollectiveThrust_ = 3.0;
+	static constexpr double kAlmostZeroValueThreshold_ = 0.001;
+	static constexpr double kAlmostZeroThrustThreshold_ = 0.01;
 
     // Thrust-accel mapping params
     const double rho2_ = 0.998; // do not change
     double thr2acc_;
     double P_;
 
+    void normalizeWithGrad(const Eigen::Vector3d &x,
+        const Eigen::Vector3d &xd,
+        Eigen::Vector3d &xNor,
+        Eigen::Vector3d &xNord) const;
+
+    Eigen::Vector3d computeLimitedTotalAcc(
+        const Eigen::Vector3d &ref_acc) const;
+    
+    void computeFlatInput(const Eigen::Vector3d &thr_acc,
+        const Eigen::Vector3d &jer,
+        const double &yaw,
+        const double &yawd,
+        const Eigen::Quaterniond &att_est,
+        Eigen::Quaterniond &att,
+        Eigen::Vector3d &omg) const;
+    
+    Eigen::Vector3d computeFeedBackControlBodyrates(
+        const Eigen::Quaterniond &des_q,
+        const Eigen::Quaterniond &est_q);
+    
     double computeDesiredCollectiveThrustSignal(const Eigen::Vector3d &des_acc);
     double fromQuaternion2yaw(Eigen::Quaterniond q);
 };

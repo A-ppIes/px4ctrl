@@ -2,18 +2,58 @@
 
 using namespace std;
 
-
-
-double LinearControl::fromQuaternion2yaw(Eigen::Quaterniond q) {
-
-    double yaw = atan2(2 * (q.x()*q.y() + q.w()*q.z()), q.w()*q.w() + q.x()*q.x() - q.y()*q.y() - q.z()*q.z());
-    return yaw;
-}
-
 LinearControl::LinearControl(Parameter_t &param) : param_(param) {
 
     resetThrustMapping();
 }
+
+void LinearControl::update_alg1(
+    const Desired_State_t &des,
+    const Odom_Data_t &odom,
+    const Imu_Data_t &imu,
+    Controller_Output_t &u) {
+
+    // Check the given velocity is valid.
+    if (des.v(2) < -3.0)
+    ROS_WARN("[px4ctrl] Desired z-Velocity = %6.3fm/s, < -3.0m/s, which is dangerous since the drone will be unstable!", des.v(2));
+
+    // Compute desired control commands
+    // compute disired acceleration
+    Eigen::Vector3d des_acc(0.0, 0.0, 0.0);
+    Eigen::Vector3d Kp, Kv;
+    Kp << param_.gain.Kp0, param_.gain.Kp1, param_.gain.Kp2;
+    Kv << param_.gain.Kv0, param_.gain.Kv1, param_.gain.Kv2;
+    des_acc = des.a + Kv.asDiagonal() * (des.v - odom.v) + Kp.asDiagonal() * (des.p - odom.p);
+    des_acc += Eigen::Vector3d(0, 0, param_.gra);
+    Eigen::Vector3d limit_des_acc = computeLimitedTotalAcc(des_acc);
+
+    // debug.des_a_x = limit_des_acc(0);
+    // debug.des_a_y = limit_des_acc(1);
+    // debug.des_a_z = limit_des_acc(2);
+
+    u.thrust = computeDesiredCollectiveThrustSignal(limit_des_acc);
+
+    Eigen::Quaterniond desired_attitude;
+    computeFlatInput(limit_des_acc, des.j, des.yaw, des.yaw_rate, odom.q, desired_attitude, u.bodyrates);
+    const Eigen::Vector3d feedback_bodyrates = computeFeedBackControlBodyrates(desired_attitude, odom.q);
+
+    // debug.des_q_w = desired_attitude.w(); //debug
+    // debug.des_q_x = desired_attitude.x();
+    // debug.des_q_y = desired_attitude.y();
+    // debug.des_q_z = desired_attitude.z();
+
+    u.q = imu.q * odom.q.inverse() * desired_attitude; // Align with FCU frame
+    u.bodyrates += feedback_bodyrates;
+    
+
+    // Used for thrust-accel mapping estimation
+    timed_thrust_.push(std::pair<ros::Time, double>(ros::Time::now(), u.thrust));
+    while (timed_thrust_.size() > 100) {
+
+        timed_thrust_.pop();
+    }
+
+};
 
 /* 
   compute u.thrust and u.q, controller gains and other parameters are in param_ 
@@ -74,10 +114,8 @@ double LinearControl::computeDesiredCollectiveThrustSignal(
     return throttle_percentage;
 }
 
-bool 
-LinearControl::estimateThrustModel(
-    const Eigen::Vector3d &est_a,
-    const Parameter_t &param){
+bool LinearControl::estimateThrustModel(
+    const Eigen::Vector3d &est_a) {
 
     ros::Time t_now = ros::Time::now();
     while (timed_thrust_.size() >= 1) {
@@ -120,9 +158,141 @@ LinearControl::estimateThrustModel(
     return false;
 }
 
-void 
-LinearControl::resetThrustMapping(void) {
+Eigen::Vector3d LinearControl::computeLimitedTotalAcc(
+    const Eigen::Vector3d &ref_acc) const {
+    
+    Eigen::Vector3d total_acc = ref_acc;
+
+    // Limit angle
+    if (param_.max_angle > 0) {
+
+        double z_acc = total_acc.dot(Eigen::Vector3d::UnitZ());
+        Eigen::Vector3d z_B = total_acc.normalized();
+        if (z_acc < kMinNormalizedCollectiveThrust_) {
+
+            z_acc = kMinNormalizedCollectiveThrust_; // Not allow too small z-force when angle limit is enabled.
+        }
+        Eigen::Vector3d rot_axis = Eigen::Vector3d::UnitZ().cross(z_B).normalized();
+        double rot_ang = std::acos(Eigen::Vector3d::UnitZ().dot(z_B) / (1 * 1));
+        if (rot_ang > param_.max_angle) { // Exceed the angle limit
+        
+            Eigen::Vector3d limited_z_B = Eigen::AngleAxisd(param_.max_angle, rot_axis) * Eigen::Vector3d::UnitZ();
+            total_acc = z_acc / std::cos(param_.max_angle) * limited_z_B;
+        }
+    }
+
+    return total_acc;
+}
+
+// grav is the gravitional acceleration
+// the coordinate should have upward z-axis
+void LinearControl::computeFlatInput(const Eigen::Vector3d &thr_acc,
+    const Eigen::Vector3d &jer,
+    const double &yaw,
+    const double &yawd,
+    const Eigen::Quaterniond &att_est,
+    Eigen::Quaterniond &att,
+    Eigen::Vector3d &omg) const {
+    
+    static Eigen::Vector3d omg_old(0.0, 0.0, 0.0);
+
+    if (thr_acc.norm() < kMinNormalizedCollectiveThrust_) {
+
+        att = att_est;
+        omg.setConstant(0.0);
+        ROS_WARN("Conor case, thrust is too small, thr_acc.norm()=%f", thr_acc.norm());
+        return;
+    } else {
+
+        Eigen::Vector3d zb, zbd;
+        normalizeWithGrad(thr_acc, jer, zb, zbd);
+        double syaw = sin(yaw);
+        double cyaw = cos(yaw);
+        Eigen::Vector3d xc(cyaw, syaw, 0.0);
+        Eigen::Vector3d xcd(-syaw * yawd, cyaw * yawd, 0.0);
+        Eigen::Vector3d yc = zb.cross(xc);
+        if (yc.norm() < kAlmostZeroValueThreshold_) {
+
+            ROS_WARN("Conor case, pitch is close to 90 deg");
+            att = att_est;
+            omg = omg_old;
+        }
+        else {
+
+            Eigen::Vector3d ycd = zbd.cross(xc) + zb.cross(xcd);
+            Eigen::Vector3d yb, ybd;
+            normalizeWithGrad(yc, ycd, yb, ybd);
+            Eigen::Vector3d xb = yb.cross(zb);
+            Eigen::Vector3d xbd = ybd.cross(zb) + yb.cross(zbd);
+            omg(0) = (zb.dot(ybd) - yb.dot(zbd)) / 2.0;
+            omg(1) = (xb.dot(zbd) - zb.dot(xbd)) / 2.0;
+            omg(2) = (yb.dot(xbd) - xb.dot(ybd)) / 2.0;
+            Eigen::Matrix3d rotM;
+            rotM << xb, yb, zb;
+            att = Eigen::Quaterniond(rotM);
+            omg_old = omg;
+        }
+    }
+    return;
+}
+
+Eigen::Vector3d LinearControl::computeFeedBackControlBodyrates(
+    const Eigen::Quaterniond &des_q,
+    const Eigen::Quaterniond &est_q) {
+    
+    // Compute the error quaternion
+    const Eigen::Quaterniond q_e = est_q.inverse() * des_q;
+
+    // Eigen::AngleAxisd rotation_vector(q_e); //debug
+    // Eigen::Vector3d axis = rotation_vector.axis();
+    // debug.err_axisang_x = axis(0);
+    // debug.err_axisang_y = axis(1);
+    // debug.err_axisang_z = axis(2);
+    // debug.err_axisang_ang = rotation_vector.angle();
+
+    // Compute desired body rates from control error
+    Eigen::Vector3d bodyrates;
+    Eigen::Vector3d KAng;
+    KAng << param_.gain.KAngR, param_.gain.KAngP, param_.gain.KAngY;
+
+    if (q_e.w() >= 0) {
+        bodyrates.x() = 2.0 * KAng(0) * q_e.x();
+        bodyrates.y() = 2.0 * KAng(1) * q_e.y();
+        bodyrates.z() = 2.0 * KAng(2) * q_e.z();
+    } else {
+        bodyrates.x() = -2.0 * KAng(0) * q_e.x();
+        bodyrates.y() = -2.0 * KAng(1) * q_e.y();
+        bodyrates.z() = -2.0 * KAng(2) * q_e.z();
+    }
+
+    //debug
+    // debug.fb_rate_x = bodyrates.x();
+    // debug.fb_rate_y = bodyrates.y();
+    // debug.fb_rate_z = bodyrates.z();
+
+    return bodyrates;
+}
+
+void LinearControl::resetThrustMapping(void) {
 
     thr2acc_ = param_.gra / param_.thr_map.hover_percentage;
     P_ = 1e6;
+}
+
+void LinearControl::normalizeWithGrad(const Eigen::Vector3d &x,
+    const Eigen::Vector3d &xd,
+    Eigen::Vector3d &xNor,
+    Eigen::Vector3d &xNord) const {
+
+    const double xSqrNorm = x.squaredNorm();
+    const double xNorm = sqrt(xSqrNorm);
+    xNor = x / xNorm;
+    xNord = (xd - x * (x.dot(xd) / xSqrNorm)) / xNorm;
+    return;
+}
+
+double LinearControl::fromQuaternion2yaw(Eigen::Quaterniond q) {
+
+    double yaw = atan2(2 * (q.x()*q.y() + q.w()*q.z()), q.w()*q.w() + q.x()*q.x() - q.y()*q.y() - q.z()*q.z());
+    return yaw;
 }

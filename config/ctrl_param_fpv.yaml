@@ -6,7 +6,7 @@ mass        : 1.32 # kg
 gra         : 9.81 
 pose_solver : 1     # 0:From ZhepeiWang (drag & less singular) 1:From ZhepeiWang, 2:From rotor-drag    
 ctrl_freq_max   : 100.0
-use_bodyrate_ctrl: false
+use_bodyrate_ctrl: true
 max_manual_vel: 1.0
 max_angle: 30  # Attitude angle limit in degree. A negative value means no limit.
 low_voltage: 13.2 # 4S battery
@@ -51,9 +51,9 @@ gain:
     Kvd1: 0.0
     Kvd2: 0.0
     # ↓↓↓ Only used in rate control mode.
-    KAngR: 20.0
-    KAngP: 20.0
-    KAngY: 20.0
+    KAngR: 10.0
+    KAngP: 10.0
+    KAngY: 5.0
 
 rotor_drag:  
     x: 0.0  # The reduced acceleration on each axis caused by rotor drag. Unit:(m*s^-2)/(m*s^-1).
