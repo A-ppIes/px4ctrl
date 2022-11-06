@@ -2,7 +2,7 @@
 
 控制器修改于高飞老师的[Fast-250](https://github.com/ZJU-FAST-Lab/Fast-Drone-250)项目，下面对修改部分做说明
 
-**去除功能**：取消自动起飞降落功能
+**去除功能**：~~取消自动起飞降落功能~~
 
 **增加功能**：
 + 增加动态参数功能（用于gazebo仿真时模拟遥控器的offboard与指令开关）
@@ -12,6 +12,7 @@
 + use_bodyrate_ctrl 设置为true时起作用，为角速度控制
 + auto_takeoff_land/no_RC 设置为true时为进行gazebo仿真（动态参数模拟遥控器开关），false时为真机实验
 + gain/KAngR 三个增益参数需要小心设置，使用默认参数在gazebo中会震荡导致发散
++ debug 开启发布debug话题
 
 **使用流程**：
 
