@@ -30,7 +30,7 @@ LinearControl::update_alg1(
 
     Eigen::Vector3d temp = des_acc - Eigen::Vector3d(0, 0, param_.gra) - des.a;
     debug_msg_.fb_a_x = temp(0);
-    debug_msg_.fb_a_z = temp(1);
+    debug_msg_.fb_a_y = temp(1);
     debug_msg_.fb_a_z = temp(2);
     debug_msg_.des_a_x = limit_des_acc(0);
     debug_msg_.des_a_y = limit_des_acc(1);
