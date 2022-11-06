@@ -140,6 +140,17 @@ void Dynamic_Data_t::feed(px4ctrl::fake_rcConfig &config) {
     mode = msg.mode_bool;
     cmd = msg.cmd_bool;
 
+    if (!have_init_last_mode) {
+
+        have_init_last_mode = true;
+        last_mode = mode;
+    }
+    if (!have_init_last_cmd) {
+
+        have_init_last_cmd = true;
+        last_cmd = cmd;
+    }
+
     if (last_mode == false && mode == true) {
         enter_hover_mode = true;
     } else {
@@ -342,17 +353,17 @@ void Command_Data_t::feed(quadrotor_msgs::PositionCommandConstPtr pMsg) {
 //     }
 // }
 
-// Takeoff_Land_Data_t::Takeoff_Land_Data_t()
-// {
-//     rcv_stamp = ros::Time(0);
-// }
+Takeoff_Land_Data_t::Takeoff_Land_Data_t()
+{
+    rcv_stamp = ros::Time(0);
+}
 
-// void Takeoff_Land_Data_t::feed(quadrotor_msgs::TakeoffLandConstPtr pMsg)
-// {
+void Takeoff_Land_Data_t::feed(quadrotor_msgs::TakeoffLandConstPtr pMsg)
+{
 
-//     msg = *pMsg;
-//     rcv_stamp = ros::Time::now();
+    msg = *pMsg;
+    rcv_stamp = ros::Time::now();
 
-//     triggered = true;
-//     takeoff_land_cmd = pMsg->takeoff_land_cmd;
-// }
+    triggered = true;
+    takeoff_land_cmd = pMsg->takeoff_land_cmd;
+}

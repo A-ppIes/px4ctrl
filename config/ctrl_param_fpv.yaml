@@ -11,6 +11,7 @@ max_manual_vel: 1.0
 max_angle: 30  # Attitude angle limit in degree. A negative value means no limit.
 low_voltage: 13.2 # 4S battery
 leader: true # leader control the trigger of ego
+debug: false
 
 rc_reverse: # *
     roll: false

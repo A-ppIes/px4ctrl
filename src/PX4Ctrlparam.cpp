@@ -38,6 +38,7 @@ void Parameter_t::config_from_ros_handle(const ros::NodeHandle &nh) {
     read_essential_param(nh, "max_angle", max_angle);
     read_essential_param(nh, "low_voltage", low_voltage);
     read_essential_param(nh, "leader", leader);
+    read_essential_param(nh, "debug", debug);
 
     read_essential_param(nh, "rc_reverse/roll", rc_reverse.roll);
     read_essential_param(nh, "rc_reverse/pitch", rc_reverse.pitch);

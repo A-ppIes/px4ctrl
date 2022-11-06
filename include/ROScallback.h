@@ -6,6 +6,8 @@
 
 #include <sensor_msgs/Imu.h>
 #include <quadrotor_msgs/PositionCommand.h>
+#include <quadrotor_msgs/Px4ctrlDebug.h>
+#include <quadrotor_msgs/TakeoffLand.h>
 #include <mavros_msgs/RCIn.h>
 #include <mavros_msgs/State.h>
 #include <mavros_msgs/ExtendedState.h>
@@ -67,6 +69,8 @@ public:
     bool last_mode;
     bool cmd;
     bool last_cmd; // fake_rcConfig
+    bool have_init_last_mode{false};
+    bool have_init_last_cmd{false};
 
     px4ctrl::fake_rcConfig msg;
 
@@ -157,19 +161,19 @@ public:
   Battery_Data_t();
   void feed(sensor_msgs::BatteryStateConstPtr pMsg);
 };
-
+*/
 class Takeoff_Land_Data_t
 {
 public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  bool triggered{false};
-  uint8_t takeoff_land_cmd; // see TakeoffLand.msg for its defination
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    bool triggered{false};
+    uint8_t takeoff_land_cmd; // see TakeoffLand.msg for its defination
 
-  quadrotor_msgs::TakeoffLand msg;
-  ros::Time rcv_stamp;
+    quadrotor_msgs::TakeoffLand msg;
+    ros::Time rcv_stamp;
 
-  Takeoff_Land_Data_t();
-  void feed(quadrotor_msgs::TakeoffLandConstPtr pMsg);
+    Takeoff_Land_Data_t();
+    void feed(quadrotor_msgs::TakeoffLandConstPtr pMsg);
 };
-*/
+
 #endif

@@ -7,7 +7,8 @@ LinearControl::LinearControl(Parameter_t &param) : param_(param) {
     resetThrustMapping();
 }
 
-void LinearControl::update_alg1(
+quadrotor_msgs::Px4ctrlDebug
+LinearControl::update_alg1(
     const Desired_State_t &des,
     const Odom_Data_t &odom,
     const Imu_Data_t &imu,
@@ -27,9 +28,13 @@ void LinearControl::update_alg1(
     des_acc += Eigen::Vector3d(0, 0, param_.gra);
     Eigen::Vector3d limit_des_acc = computeLimitedTotalAcc(des_acc);
 
-    // debug.des_a_x = limit_des_acc(0);
-    // debug.des_a_y = limit_des_acc(1);
-    // debug.des_a_z = limit_des_acc(2);
+    Eigen::Vector3d temp = des_acc - Eigen::Vector3d(0, 0, param_.gra) - des.a;
+    debug_msg_.fb_a_x = temp(0);
+    debug_msg_.fb_a_z = temp(1);
+    debug_msg_.fb_a_z = temp(2);
+    debug_msg_.des_a_x = limit_des_acc(0);
+    debug_msg_.des_a_y = limit_des_acc(1);
+    debug_msg_.des_a_z = limit_des_acc(2);
 
     u.thrust = computeDesiredCollectiveThrustSignal(limit_des_acc);
 
@@ -37,10 +42,10 @@ void LinearControl::update_alg1(
     computeFlatInput(limit_des_acc, des.j, des.yaw, des.yaw_rate, odom.q, desired_attitude, u.bodyrates);
     const Eigen::Vector3d feedback_bodyrates = computeFeedBackControlBodyrates(desired_attitude, odom.q);
 
-    // debug.des_q_w = desired_attitude.w(); //debug
-    // debug.des_q_x = desired_attitude.x();
-    // debug.des_q_y = desired_attitude.y();
-    // debug.des_q_z = desired_attitude.z();
+    debug_msg_.des_q_w = desired_attitude.w(); //debug
+    debug_msg_.des_q_x = desired_attitude.x();
+    debug_msg_.des_q_y = desired_attitude.y();
+    debug_msg_.des_q_z = desired_attitude.z();
 
     u.q = imu.q * odom.q.inverse() * desired_attitude; // Align with FCU frame
     u.bodyrates += feedback_bodyrates;
@@ -52,13 +57,14 @@ void LinearControl::update_alg1(
 
         timed_thrust_.pop();
     }
-
+    return debug_msg_;
 };
 
 /* 
   compute u.thrust and u.q, controller gains and other parameters are in param_ 
 */
-void LinearControl::calculateControl(const Desired_State_t &des,
+quadrotor_msgs::Px4ctrlDebug
+LinearControl::calculateControl(const Desired_State_t &des,
     const Odom_Data_t &odom,
     const Imu_Data_t &imu, 
     Controller_Output_t &u) {
@@ -88,8 +94,21 @@ void LinearControl::calculateControl(const Desired_State_t &des,
     * Eigen::AngleAxisd(roll,Eigen::Vector3d::UnitX());
     u.q = imu.q * odom.q.inverse() * q;
 
+    /* WRITE YOUR CODE HERE */
+    debug_msg_.des_v_x = des.v(0);
+    debug_msg_.des_v_y = des.v(1);
+    debug_msg_.des_v_z = des.v(2);
 
-  /* WRITE YOUR CODE HERE */
+    debug_msg_.des_a_x = des_acc(0);
+    debug_msg_.des_a_y = des_acc(1);
+    debug_msg_.des_a_z = des_acc(2);
+
+    debug_msg_.des_q_x = u.q.x();
+    debug_msg_.des_q_y = u.q.y();
+    debug_msg_.des_q_z = u.q.z();
+    debug_msg_.des_q_w = u.q.w();
+
+    debug_msg_.des_thr = u.thrust;
   
     // Used for thrust-accel mapping estimation
     timed_thrust_.push(std::pair<ros::Time, double>(ros::Time::now(), u.thrust));
@@ -97,6 +116,7 @@ void LinearControl::calculateControl(const Desired_State_t &des,
 
         timed_thrust_.pop();
     }
+    return debug_msg_;
   
 }
 
@@ -152,7 +172,7 @@ bool LinearControl::estimateThrustModel(
             printf("%6.3f,%6.3f,%6.3f,%6.3f\n", thr2acc_, gamma, K, P_);
         //fflush(stdout);
 
-        // debug_msg_.thr2acc = thr2acc_;
+        debug_msg_.hover_percentage = thr2acc_;
         return true;
     }
     return false;
@@ -243,12 +263,12 @@ Eigen::Vector3d LinearControl::computeFeedBackControlBodyrates(
     // Compute the error quaternion
     const Eigen::Quaterniond q_e = est_q.inverse() * des_q;
 
-    // Eigen::AngleAxisd rotation_vector(q_e); //debug
-    // Eigen::Vector3d axis = rotation_vector.axis();
-    // debug.err_axisang_x = axis(0);
-    // debug.err_axisang_y = axis(1);
-    // debug.err_axisang_z = axis(2);
-    // debug.err_axisang_ang = rotation_vector.angle();
+    Eigen::AngleAxisd rotation_vector(q_e); //debug
+    Eigen::Vector3d axis = rotation_vector.axis();
+    debug_msg_.err_axisang_x = axis(0);
+    debug_msg_.err_axisang_y = axis(1);
+    debug_msg_.err_axisang_z = axis(2);
+    debug_msg_.err_axisang_ang = rotation_vector.angle();
 
     // Compute desired body rates from control error
     Eigen::Vector3d bodyrates;
@@ -266,9 +286,9 @@ Eigen::Vector3d LinearControl::computeFeedBackControlBodyrates(
     }
 
     //debug
-    // debug.fb_rate_x = bodyrates.x();
-    // debug.fb_rate_y = bodyrates.y();
-    // debug.fb_rate_z = bodyrates.z();
+    debug_msg_.fb_rate_x = bodyrates.x();
+    debug_msg_.fb_rate_y = bodyrates.y();
+    debug_msg_.fb_rate_z = bodyrates.z();
 
     return bodyrates;
 }

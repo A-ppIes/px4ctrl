@@ -70,17 +70,17 @@ int main(int argc, char *argv[])
     //                                             ros::VoidConstPtr(),
     //                                             ros::TransportHints().tcpNoDelay());
 
-    // ros::Subscriber takeoff_land_sub =
-    //     nh.subscribe<quadrotor_msgs::TakeoffLand>("takeoff_land",
-    //                                               100,
-    //                                               boost::bind(&Takeoff_Land_Data_t::feed, &fsm.takeoff_land_data, _1),
-    //                                               ros::VoidConstPtr(),
-    //                                               ros::TransportHints().tcpNoDelay());
+    ros::Subscriber takeoff_land_sub =
+        nh.subscribe<quadrotor_msgs::TakeoffLand>("takeoff_land",
+                                                  100,
+                                                  boost::bind(&Takeoff_Land_Data_t::feed, &fsm.takeoff_land_data, _1),
+                                                  ros::VoidConstPtr(),
+                                                  ros::TransportHints().tcpNoDelay());
 
     fsm.ctrl_FCU_pub = nh.advertise<mavros_msgs::AttitudeTarget>("mavros/setpoint_raw/attitude", 10);
     fsm.traj_start_trigger_pub = nh.advertise<geometry_msgs::PoseStamped>("/traj_start_trigger", 10);
 
-    // fsm.debug_pub = nh.advertise<quadrotor_msgs::Px4ctrlDebug>("/debugPx4ctrl", 10); // debug
+    fsm.debug_pub = nh.advertise<quadrotor_msgs::Px4ctrlDebug>("/debugPx4ctrl", 10); // debug
 
     fsm.set_FCU_mode_srv = nh.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
     fsm.arming_client_srv = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");

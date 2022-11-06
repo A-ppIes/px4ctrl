@@ -53,12 +53,15 @@ class LinearControl
 {
 public:
     LinearControl(Parameter_t &);
-    void calculateControl(const Desired_State_t &des,
+
+    quadrotor_msgs::Px4ctrlDebug
+    calculateControl(const Desired_State_t &des,
         const Odom_Data_t &odom,
         const Imu_Data_t &imu, 
         Controller_Output_t &u);
     
-    void update_alg1(const Desired_State_t &des,
+    quadrotor_msgs::Px4ctrlDebug
+    update_alg1(const Desired_State_t &des,
         const Odom_Data_t &odom,
         const Imu_Data_t &imu,
         Controller_Output_t &u);
@@ -70,6 +73,7 @@ public:
 
 private:
     Parameter_t param_;
+    quadrotor_msgs::Px4ctrlDebug debug_msg_;
     std::queue<std::pair<ros::Time, double>> timed_thrust_;
     static constexpr double kMinNormalizedCollectiveThrust_ = 3.0;
 	static constexpr double kAlmostZeroValueThreshold_ = 0.001;

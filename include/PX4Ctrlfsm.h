@@ -51,6 +51,7 @@ public:
     Odom_Data_t odom_data;
     Imu_Data_t imu_data;
     Command_Data_t cmd_data;
+    Takeoff_Land_Data_t takeoff_land_data;
 
     LinearControl &controller;
 
@@ -61,6 +62,7 @@ public:
     ros::ServiceClient arming_client_srv;
     ros::ServiceClient reboot_FCU_srv;
 
+    quadrotor_msgs::Px4ctrlDebug debug_msg; //debug
 
     Eigen::Vector4d hover_pose;
     ros::Time last_set_hover_pose_time;

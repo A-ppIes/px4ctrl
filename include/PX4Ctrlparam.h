@@ -72,6 +72,7 @@ public:
     double max_manual_vel;
     double low_voltage;
     bool leader;
+    bool debug;
 
     bool use_bodyrate_ctrl;
     // bool print_dbg;
