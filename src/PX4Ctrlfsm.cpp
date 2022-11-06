@@ -248,12 +248,12 @@ void PX4CtrlFSM::process()
 
     case AUTO_LAND:
     {
-        if (!rc_data.is_hover_mode || !odom_is_received(now_time)) {
+        if (!rc_dy_data.is_hover_mode || !odom_is_received(now_time)) {
             state = MANUAL_CTRL;
             toggle_offboard_mode(false);
 
             ROS_WARN("[px4ctrl] From AUTO_LAND to MANUAL_CTRL(L1)!");
-        } else if (!rc_data.is_command_mode) {
+        } else if (!rc_dy_data.is_command_mode) {
             state = AUTO_HOVER;
             set_hov_with_odom();
             des = get_hover_des();
@@ -332,9 +332,12 @@ void PX4CtrlFSM::process()
     // fflush(stdout);
 
     // STEP6: Clear flags beyound their lifetime
-    rc_dy_data.enter_hover_mode = false;
-    rc_dy_data.enter_command_mode = false;
-    rc_dy_data.toggle_reboot = false;
+    dy_data.enter_hover_mode = false;
+    dy_data.enter_command_mode = false;
+    dy_data.toggle_reboot = false;
+    rc_data.enter_hover_mode = false;
+    rc_data.enter_command_mode = false;
+    rc_data.toggle_reboot = false;
     takeoff_land_data.triggered = false;
 }
 
