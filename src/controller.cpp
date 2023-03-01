@@ -19,27 +19,21 @@ LinearControl::update_alg1(
     ROS_WARN("[px4ctrl] Desired z-Velocity = %6.3fm/s, < -3.0m/s, which is dangerous since the drone will be unstable!", des.v(2));
 
     // Compute desired control commands
-    // compute disired acceleration
-    Eigen::Vector3d des_acc(0.0, 0.0, 0.0);
-    Eigen::Vector3d Kp, Kv;
-    Kp << param_.gain.Kp0, param_.gain.Kp1, param_.gain.Kp2;
-    Kv << param_.gain.Kv0, param_.gain.Kv1, param_.gain.Kv2;
-    des_acc = des.a + Kv.asDiagonal() * (des.v - odom.v) + Kp.asDiagonal() * (des.p - odom.p);
-    des_acc += Eigen::Vector3d(0, 0, param_.gra);
-    Eigen::Vector3d limit_des_acc = computeLimitedTotalAcc(des_acc);
+    const Eigen::Vector3d pid_error_accelerations = computePIDErrorAcc(odom, des, param_);
+    Eigen::Vector3d total_acc = pid_error_accelerations + des.a + Eigen::Vector3d(0, 0, param_.gra);
+    Eigen::Vector3d total_des_acc = computeLimitedTotalAcc(total_acc);
 
-    Eigen::Vector3d temp = des_acc - Eigen::Vector3d(0, 0, param_.gra) - des.a;
-    debug_msg_.fb_a_x = temp(0);
-    debug_msg_.fb_a_y = temp(1);
-    debug_msg_.fb_a_z = temp(2);
-    debug_msg_.des_a_x = limit_des_acc(0);
-    debug_msg_.des_a_y = limit_des_acc(1);
-    debug_msg_.des_a_z = limit_des_acc(2);
+    debug_msg_.fb_a_x = pid_error_accelerations(0); //debug
+    debug_msg_.fb_a_y = pid_error_accelerations(1);
+    debug_msg_.fb_a_z = pid_error_accelerations(2);
+    debug_msg_.des_a_x = total_des_acc(0);
+    debug_msg_.des_a_y = total_des_acc(1);
+    debug_msg_.des_a_z = total_des_acc(2);
 
-    u.thrust = computeDesiredCollectiveThrustSignal(limit_des_acc);
+    u.thrust = computeDesiredCollectiveThrustSignal(total_des_acc);
 
     Eigen::Quaterniond desired_attitude;
-    computeFlatInput(limit_des_acc, des.j, des.yaw, des.yaw_rate, odom.q, desired_attitude, u.bodyrates);
+    computeFlatInput(total_des_acc, des.j, des.yaw, des.yaw_rate, odom.q, desired_attitude, u.bodyrates);
     const Eigen::Vector3d feedback_bodyrates = computeFeedBackControlBodyrates(desired_attitude, odom.q);
 
     debug_msg_.des_q_w = desired_attitude.w(); //debug
@@ -49,7 +43,7 @@ LinearControl::update_alg1(
 
     u.q = imu.q * odom.q.inverse() * desired_attitude; // Align with FCU frame
     u.bodyrates += feedback_bodyrates;
-    
+
 
     // Used for thrust-accel mapping estimation
     timed_thrust_.push(std::pair<ros::Time, double>(ros::Time::now(), u.thrust));
@@ -74,7 +68,8 @@ LinearControl::calculateControl(const Desired_State_t &des,
     Eigen::Vector3d Kp,Kv;
     Kp << param_.gain.Kp0, param_.gain.Kp1, param_.gain.Kp2;
     Kv << param_.gain.Kv0, param_.gain.Kv1, param_.gain.Kv2;
-    des_acc = des.a + Kv.asDiagonal() * (des.v - odom.v) + Kp.asDiagonal() * (des.p - odom.p);
+    Eigen::Vector3d p_error = Kp.asDiagonal() * (des.p - odom.p);
+    des_acc = des.a + Kv.asDiagonal() * ((des.v + p_error) - odom.v);
     des_acc += Eigen::Vector3d(0,0,param_.gra);
 
     u.thrust = computeDesiredCollectiveThrustSignal(des_acc);
@@ -120,6 +115,37 @@ LinearControl::calculateControl(const Desired_State_t &des,
   
 }
 
+Eigen::Vector3d LinearControl::computePIDErrorAcc(
+    const Odom_Data_t &odom,
+    const Desired_State_t &des,
+    const Parameter_t &param){
+    // Compute the desired accelerations due to control errors in world frame
+    // with a PID controller
+    Eigen::Vector3d acc_error;
+    Eigen::Vector3d Kp,Kv;
+    Kp << param_.gain.Kp0, param_.gain.Kp1, param_.gain.Kp2;
+    Kv << param_.gain.Kv0, param_.gain.Kv1, param_.gain.Kv2;
+    // x acceleration
+    double x_pos_error = std::isnan(des.p(0)) ? 0.0 : std::max(std::min(des.p(0) - odom.p(0), 1.0), -1.0);
+    double x_vel_error = std::max(std::min((des.v(0) + Kp(0) * x_pos_error) - odom.v(0), 1.0), -1.0);
+    acc_error(0) = Kv(0) * x_vel_error;
+
+    // y acceleration
+    double y_pos_error = std::isnan(des.p(1)) ? 0.0 : std::max(std::min(des.p(1) - odom.p(1), 1.0), -1.0);
+    double y_vel_error = std::max(std::min((des.v(1) + Kp(1) * y_pos_error) - odom.v(1), 1.0), -1.0);
+    acc_error(1) = Kv(1) * y_vel_error;
+
+    // z acceleration
+    double z_pos_error = std::isnan(des.p(2)) ? 0.0 : std::max(std::min(des.p(2) - odom.p(2), 1.0), -1.0);
+    double z_vel_error = std::max(std::min((des.v(2) + Kp(2) * z_pos_error) - odom.v(2), 1.0), -1.0);
+    acc_error(2) = Kv(2) * z_vel_error;
+
+    debug_msg_.des_v_x = (des.v(0) + Kp(0) * x_pos_error); //debug
+    debug_msg_.des_v_y = (des.v(1) + Kp(1) * y_pos_error);
+    debug_msg_.des_v_z = (des.v(2) + Kp(2) * z_pos_error);
+
+    return acc_error;
+}
 /*
   compute throttle percentage 
 */

@@ -88,7 +88,11 @@ private:
         const Eigen::Vector3d &xd,
         Eigen::Vector3d &xNor,
         Eigen::Vector3d &xNord) const;
-
+    Eigen::Vector3d computePIDErrorAcc(
+        const Odom_Data_t &odom,
+        const Desired_State_t &des,
+        const Parameter_t &param);
+    
     Eigen::Vector3d computeLimitedTotalAcc(
         const Eigen::Vector3d &ref_acc) const;
     

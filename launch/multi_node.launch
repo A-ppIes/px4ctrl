@@ -12,7 +12,7 @@
             <!-- <remap from="~odom" to="/vicon_imu_ekf_odom" /> -->
             <remap from="odom" to="mavros/local_position/odom" />
             <remap from="cmd" to="planning/pos_cmd" />
-            <rosparam command="load" file="$(find px4ctrl)/config/ctrl_param_fpv.yaml" />
+            <rosparam command="load" file="$(find px4ctrl)/config/ctrl_param_fpv_f.yaml" />
         </node>
     </group>
     <group ns="iris_2">
@@ -20,7 +20,7 @@
             <!-- <remap from="~odom" to="/vicon_imu_ekf_odom" /> -->
             <remap from="odom" to="mavros/local_position/odom" />
             <remap from="cmd" to="planning/pos_cmd" />
-            <rosparam command="load" file="$(find px4ctrl)/config/ctrl_param_fpv.yaml" />
+            <rosparam command="load" file="$(find px4ctrl)/config/ctrl_param_fpv_f.yaml" />
         </node>
     </group>
 </launch>
